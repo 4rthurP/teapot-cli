@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+.venv
+
+# IDE
+.vscode/
+.claude/
+CLAUDE.md
+
+# Config files
+*.local.yaml
