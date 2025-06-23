@@ -1,9 +1,16 @@
 """Main CLI entry point for teapot-cli."""
 
-import typer
-from typing_extensions import Annotated
+import os
+from typing import Annotated
 
-from teapot_cli.commands import config, install
+import typer
+from rich.console import Console
+
+from teapot_cli.commands import alias, config, package
+from teapot_cli.core.api import APIClient, APIEndpointPrivacy, APIError
+from teapot_cli.core.config import AuthConfig, load_config, save_config
+
+console = Console()
 
 app = typer.Typer(
     name="teapot",
@@ -11,17 +18,82 @@ app = typer.Typer(
     add_completion=False,
 )
 
-app.add_typer(install.app, name="install", help="Package installation commands")
+app.add_typer(package.app, name="package", help="Package management commands")
+app.add_typer(alias.app, name="alias", help="Alias management commands")
 app.add_typer(config.app, name="config", help="Configuration management commands")
+
+
+@app.command("login")
+def login() -> None:
+    """Login to the Teapot API."""
+    config = load_config()
+
+    if config.auth.user_id and config.auth.session_token:
+        console.print(
+            "[yellow]⚠️ You are already logged in. Use 'logout' to clear session.[/yellow]",  # noqa: E501
+        )
+        raise typer.Abort from None
+
+    username = typer.prompt("Username")
+    password = typer.prompt("Password", hide_input=True)
+
+    console.print("Authenticating...")
+
+    with APIClient(config) as client:
+        try:
+            response = client.post(
+                "user/login",
+                {
+                    "username": username,
+                    "password": password,
+                },
+                APIEndpointPrivacy.PUBLIC,
+            )
+
+            # Store auth data
+            config.auth.user_id = response["data"]["user_id"]
+            config.auth.session_token = response["data"]["session_token"]
+
+            save_config(config)
+            console.print("[green]✅ Login successful[/green]")
+
+        except APIError as e:
+            console.print(f"[red]❌ Login failed: {e}[/red]")
+            raise typer.Exit(1) from None
+        except KeyError as e:
+            console.print(f"[red]❌ Invalid response from server: {e}[/red]")
+            raise typer.Exit(1) from None
+
+
+@app.command("logout")
+def logout() -> None:
+    """Logout and clear authentication."""
+    config = load_config()
+    config.auth = AuthConfig()  # Reset to defaults
+    save_config(config)
+    console.print("[green]✅ Logged out successfully[/green]")
 
 
 @app.callback()
 def main(
-    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose output")] = False,
+    *,
+    verbose: Annotated[
+        int,
+        typer.Option(
+            "--verbose",
+            "-v",
+            count=True,
+            help="Enable verbose output (-v, -vv, -vvv for increasing detail)",
+        ),
+    ] = 0,
 ) -> None:
     """Teapot CLI - Package installation and configuration management tool."""
-    if verbose:
-        typer.echo("Verbose mode enabled")
+    if verbose > 0:
+        level_names = ["", "basic", "detailed", "debug"]
+        level_name = level_names[min(verbose, 3)]
+        typer.echo(f"Verbose mode enabled (level {verbose} - {level_name})")
+        # Store verbosity level in a way that command modules can access it
+        os.environ["TEAPOT_VERBOSITY"] = str(verbose)
 
 
 if __name__ == "__main__":

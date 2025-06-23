@@ -1,39 +1,134 @@
 """Configuration management for teapot-cli."""
 
+import contextlib
+import os
 from pathlib import Path
-from typing import Optional
+from zoneinfo import ZoneInfo
 
+import yaml
+from platformdirs import user_config_dir
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from platformdirs import user_config_dir
-import yaml
+
+from teapot_cli.core.system import SystemInfo
+
+# Verbosity level constants
+VERBOSITY_QUIET = 0
+VERBOSITY_BASIC = 1
+VERBOSITY_DETAILED = 2
+VERBOSITY_DEBUG = 3
 
 
 class APIConfig(BaseModel):
     """API configuration settings."""
-    
+
     base_url: str = "https://api.example.com"
     timeout: int = 30
-    api_key: Optional[str] = None
+    api_key: str | None = None
+
+
+class SystemConfig(BaseModel):
+    """System configuration settings."""
+
+    id: int | None = None
+    name: str | None = None
+    preferred_package_manager: str | None = None
+
+
+class AuthConfig(BaseModel):
+    """Authentication configuration settings."""
+
+    user_id: int | None = None
+    nonce: str | None = None
+    nonce_expiration: str | None = None
+    session_token: str | None = None
 
 
 class TeapotConfig(BaseSettings):
     """Main configuration for teapot-cli."""
-    
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_prefix="TEAPOT_",
         case_sensitive=False,
     )
-    
+
     api: APIConfig = Field(default_factory=APIConfig)
-    cache_dir: Optional[Path] = None
-    verbose: bool = False
-    
-    def __init__(self, **kwargs):
+    system: SystemConfig = Field(default_factory=SystemConfig)
+    auth: AuthConfig = Field(default_factory=AuthConfig)
+    cache_dir: Path | None = None
+    verbosity: int = 0
+    tz: None | ZoneInfo = None
+    packages: dict[str, dict] = Field(default_factory=dict)
+    aliases: dict[str, dict] = Field(default_factory=dict)
+    skip_install: bool = False
+
+    # Private cached system info
+    _system_info: "SystemInfo | None" = None
+
+    def __init__(self, **kwargs) -> None:
+        """Initialize TeapotConfig with default values."""
         super().__init__(**kwargs)
+
+        # Set default cache directory if not provided
         if self.cache_dir is None:
             self.cache_dir = Path(user_config_dir("teapot-cli")) / "cache"
+
+        # Override verbosity from environment if set (from CLI)
+        if "TEAPOT_VERBOSITY" in os.environ:
+            with contextlib.suppress(ValueError):
+                self.verbosity = int(os.environ["TEAPOT_VERBOSITY"])
+
+        # Adds timezone if not set
+        if self.tz is None:
+            self.tz = ZoneInfo(os.environ.get("TZ", "UTC"))
+
+        # Initialize system info cache
+        self._system_info = None
+
+        # Look for the TEAPOT_SKIP_INSTALL environment variable
+        if "TEAPOT_SKIP_INSTALL" in os.environ:
+            self.skip_install = os.environ["TEAPOT_SKIP_INSTALL"].lower() in (
+                "1",
+                "true",
+                "yes",
+            )
+
+    def is_verbose(self, level: int = 1) -> bool:
+        """Check if verbosity is at or above the specified level."""
+        return self.verbosity >= level
+
+    @property
+    def verbose(self) -> bool:
+        """Backward compatibility property."""
+        return self.verbosity > 0
+
+    @property
+    def system_info(self) -> "SystemInfo":
+        """Get cached SystemInfo instance.
+
+        Returns:
+            SystemInfo: Cached system information instance
+
+        """
+        if self._system_info is None:
+            # Import here to avoid circular imports
+            self._system_info = SystemInfo()
+        return self._system_info
+
+    def get_effective_package_manager(self) -> str | None:
+        """Get effective package manager from user preference and system detection.
+
+        Returns:
+            str | None: Package manager to use, or None if none available
+
+        """
+        # Use user preference if set
+        if self.system.preferred_package_manager:
+            return self.system.preferred_package_manager
+
+        # Otherwise use system detection
+        return self.system_info.package_manager
 
 
 def get_config_path() -> Path:
@@ -46,24 +141,24 @@ def get_config_path() -> Path:
 def load_config() -> TeapotConfig:
     """Load configuration from file and environment variables."""
     config_path = get_config_path()
-    
+
     if config_path.exists():
-        with open(config_path, "r") as f:
+        with Path.open(config_path) as f:
             config_data = yaml.safe_load(f) or {}
     else:
         config_data = {}
-    
+
     return TeapotConfig(**config_data)
 
 
 def save_config(config: TeapotConfig) -> None:
     """Save configuration to file."""
     config_path = get_config_path()
-    
+
     # Convert to dict and handle Path objects
     config_dict = config.model_dump(mode="json")
     if config_dict.get("cache_dir"):
         config_dict["cache_dir"] = str(config_dict["cache_dir"])
-    
-    with open(config_path, "w") as f:
+
+    with Path.open(config_path, "w") as f:
         yaml.dump(config_dict, f, default_flow_style=False)

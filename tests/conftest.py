@@ -1,11 +1,12 @@
 """Test configuration and fixtures."""
 
-import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock
 
-from teapot_cli.core.config import TeapotConfig, APIConfig
+import pytest
+
+from teapot_cli.core.config import APIConfig, TeapotConfig
 
 
 @pytest.fixture
@@ -21,15 +22,15 @@ def mock_config(temp_dir):
     api_config = APIConfig(
         base_url="https://api.test.com",
         timeout=10,
-        api_key="test-key"
+        api_key="test-key",
     )
-    
+
     config = TeapotConfig(
         api=api_config,
         cache_dir=temp_dir / "cache",
-        verbose=True
+        verbose=True,
     )
-    
+
     return config
 
 
@@ -44,5 +45,5 @@ def mock_httpx_client():
     mock_client.post.return_value = mock_response
     mock_client.put.return_value = mock_response
     mock_client.delete.return_value = mock_response
-    
+
     return mock_client
