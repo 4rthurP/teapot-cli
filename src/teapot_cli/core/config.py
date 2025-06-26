@@ -59,7 +59,7 @@ class TeapotConfig(BaseSettings):
     verbosity: int = 0
     tz: None | ZoneInfo = None
     packages: dict[str, str] = Field(default_factory=dict)
-    aliases: dict[str, str] = Field(default_factory=dict)
+    alias: dict[str, str] = Field(default_factory=dict)
     skip_install: bool = False
 
     # Private cached system info

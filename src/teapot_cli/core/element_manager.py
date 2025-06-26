@@ -76,7 +76,7 @@ class ElementManager:
         with APIClient(self.config) as client:
             try:
                 response = client.get(
-                    f"/teapot/{self.element_type}/add_or_create",
+                    f"/teapot/{self.element_type}/get_by_name",
                     params={"name": element_name},
                 )
                 if "element" in response:
@@ -109,17 +109,42 @@ class ElementManager:
         with APIClient(self.config) as client:
             try:
                 response = client.get(
-                    f"/teapot/{self.element_type_plural}/list_all",
+                    f"/teapot/{self.element_type}/list_all",
                     params={"system_id": self.config.system.id},
                 )
 
                 # Extract element names from response
-                elements_data = response.get(self.element_type_plural, [])
+                elements_data = response.get("data", {})
                 return [elem.get("name") for elem in elements_data if elem.get("name")]
 
             except APIError as e:
                 console.print(
                     f"[red]Error fetching available {self.element_type_plural}:[/red] {e}"
+                )
+                return []
+
+    def list_system_assigned(self) -> tuple[list, list]:
+        """Fetch elements assigned to the current system from API.
+
+        Returns:
+            list[str]: List of element names assigned to the system
+
+        """
+        with APIClient(self.config) as client:
+            try:
+                response = client.get(
+                    f"/teapot/{self.element_type}/list_in_system",
+                    params={"system_id": self.config.system.id},
+                )
+
+                # Extract element names from response
+                response_data = response.get("data", {})
+                elements_data = response_data.get("elements", [])
+                return [elements_data[elem].get("name") for elem in elements_data], response_data.get("dependencies", [])
+
+            except APIError as e:
+                console.print(
+                    f"[red]Error fetching system {self.element_type_plural}:[/red] {e}"
                 )
                 return []
 
@@ -332,3 +357,32 @@ class ElementManager:
             table.add_row(*row_data)
 
         console.print(table)
+
+    def display_system_list(self) -> None:
+        """Display system-assigned elements with installation status."""
+        system_elements, dependencies = self.list_system_assigned()
+        if not system_elements:
+            console.print(f"[yellow]No {self.element_type_plural} assigned to this system.[/yellow]")
+            return
+
+        installed_elements = self.list_installed()
+        installed_names = set(installed_elements.values())
+
+        # Categorize elements
+        installed = [name for name in system_elements if name in installed_names]
+        pending = [name for name in system_elements if name not in installed_names]
+
+        console.print(f"System {self.element_type_plural} ({len(system_elements)} total):")
+        
+        # Show installed first
+        for name in installed:
+            console.print(f"  [green]✅ {name}[/green] (installed)")
+        
+        # Show pending installation
+        for name in pending:
+            console.print(f"  [yellow]⏳ {name}[/yellow] (pending installation)")
+
+        console.print(f"{len(dependencies)} dependencies associated")
+        
+        if pending:
+            console.print(f"\n[dim]Run 'teapot {self.element_type} install --all' to install pending {self.element_type_plural}[/dim]")

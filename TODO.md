@@ -1,2 +1,4 @@
+- Make the "get_by_name" endpoint in the API
+- Add a list all packages available and all packages in the system vs the list of packages currently installed
 - Get the correct endpoint in uninstall
 - Make sure we have a remove and uninstall command

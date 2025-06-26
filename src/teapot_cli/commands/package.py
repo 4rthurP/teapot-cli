@@ -71,9 +71,12 @@ def uninstall(
         raise typer.Exit(1)
 
 
-@app.command("list")
-def list_packages() -> None:
-    """List installed packages."""
+list_app = typer.Typer()
+
+
+@list_app.command("installed")
+def list_installed() -> None:
+    """List locally installed packages."""
     config = load_config()
     manager = ElementManager(config, "package")
 
@@ -85,6 +88,40 @@ def list_packages() -> None:
     console.print("Installed packages:")
     for package_id, package_name in installed_packages.items():
         console.print(f"  {package_name} (ID: {package_id})")
+
+
+@list_app.command("available")
+def list_available() -> None:
+    """List all available packages from API."""
+    config = load_config()
+    manager = ElementManager(config, "package")
+
+    available_packages = manager.list_all_available()
+    if not available_packages:
+        console.print("[yellow]No packages available.[/yellow]")
+        return
+
+    console.print(f"Available packages ({len(available_packages)} total):")
+    for package_name in sorted(available_packages):
+        console.print(f"  📦 {package_name}")
+
+
+@list_app.command("system")
+def list_system() -> None:
+    """List packages assigned to this system with status."""
+    config = load_config()
+    manager = ElementManager(config, "package")
+    manager.display_system_list()
+
+
+@list_app.callback(invoke_without_command=True)
+def list_packages(ctx: typer.Context) -> None:
+    """List packages. Defaults to showing installed packages."""
+    if ctx.invoked_subcommand is None:
+        list_installed()
+
+
+app.add_typer(list_app, name="list", help="List packages")
 
 
 @app.command()

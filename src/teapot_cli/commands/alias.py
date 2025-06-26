@@ -68,9 +68,12 @@ def uninstall(
         raise typer.Exit(1)
 
 
-@app.command()
-def list_aliases() -> None:
-    """List installed aliases."""
+list_app = typer.Typer()
+
+
+@list_app.command("installed")
+def list_installed() -> None:
+    """List locally installed aliases."""
     config = load_config()
     manager = ElementManager(config, "alias")
 
@@ -82,6 +85,40 @@ def list_aliases() -> None:
     console.print("Installed aliases:")
     for alias_id, alias_name in installed_aliases.items():
         console.print(f"  {alias_name} (ID: {alias_id})")
+
+
+@list_app.command("available")
+def list_available() -> None:
+    """List all available aliases from API."""
+    config = load_config()
+    manager = ElementManager(config, "alias")
+
+    available_aliases = manager.list_all_available()
+    if not available_aliases:
+        console.print("[yellow]No aliases available.[/yellow]")
+        return
+
+    console.print(f"Available aliases ({len(available_aliases)} total):")
+    for alias_name in sorted(available_aliases):
+        console.print(f"  📦 {alias_name}")
+
+
+@list_app.command("system")
+def list_system() -> None:
+    """List aliases assigned to this system with status."""
+    config = load_config()
+    manager = ElementManager(config, "alias")
+    manager.display_system_list()
+
+
+@list_app.callback(invoke_without_command=True)
+def list_aliases(ctx: typer.Context) -> None:
+    """List aliases. Defaults to showing installed aliases."""
+    if ctx.invoked_subcommand is None:
+        list_installed()
+
+
+app.add_typer(list_app, name="list", help="List aliases")
 
 
 @app.command()
