@@ -39,12 +39,29 @@ dev = [
 [project.scripts]
 teapot = "teapot_cli.main:app"
 
-[tool.ruff]
-target-version = "py313"
-line-length = 88
-select = ["ALL"]
+[tool.ruff.lint]
+extend-select = [
+    "RUF",
+    "COM",
+    "Q",
+    "UP",
+    "I",
+    "PERF",
+    "N",
+    "FLY",
+    "PTH",
+    "TC",
+    "SIM",
+    "RET",
+    "FIX",
+    "C4",
+    "B",
+    "ASYNC",
+    "ANN001",
+]
+
 ignore = [
-    "ANN003", # Kwargs missing type annotations
+    "COM812",
 ]
 
 exclude = [
@@ -64,3 +81,8 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]

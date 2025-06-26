@@ -9,7 +9,7 @@ import yaml
 from rich.console import Console
 from rich.syntax import Syntax
 
-from teapot_cli.core.api import APIClient, APIError
+from teapot_cli.core.api import APIClient, APIEndpointPrivacy, APIError
 from teapot_cli.core.config import get_config_path, load_config, save_config
 
 
@@ -25,9 +25,10 @@ class ConfigKey(str, Enum):
     AUTH_USER_ID = "auth.user_id"
     AUTH_NONCE = "auth.nonce"
     AUTH_NONCE_EXPIRATION = "auth.nonce_expiration"
-    AUTH_SESSION_TOKEN = "auth.session_token"  # noqa: S105
-    CACHE_DIR = "cache_dir"
+    AUTH_SESSION_TOKEN = "auth.session_token"
     VERBOSITY = "verbosity"
+    SKIP_INSTALL = "skip_install"
+
 
 app = typer.Typer()
 console = Console()
@@ -38,10 +39,6 @@ def show() -> None:
     """Show current configuration."""
     config = load_config()
     config_dict = config.model_dump(mode="json")
-
-    # Convert Path objects to strings for display
-    if config_dict.get("cache_dir"):
-        config_dict["cache_dir"] = str(config_dict["cache_dir"])
 
     yaml_content = yaml.dump(config_dict, default_flow_style=False)
     syntax = Syntax(yaml_content, "yaml", theme="monokai", line_numbers=True)
@@ -83,16 +80,7 @@ def set_config(
 
             # Auto-test API connection when base_url is changed
             if key == ConfigKey.API_BASE_URL:
-                console.print("[dim]Testing new API connection...[/dim]")
-                with APIClient(config) as client:
-                    if client.test_connection():
-                        console.print(
-                            "[green]✅ API connection verified[/green]",
-                        )
-                    else:
-                        console.print(
-                            "[yellow]⚠️  Warning: Could not verify API connection[/yellow]",  # noqa: E501
-                            )
+                test_api()
         else:
             console.print(f"[red]Configuration key '{key.value}' not found[/red]")
             raise typer.Exit(1)
@@ -189,7 +177,7 @@ def configure_system(
 
         except APIError as e:
             console.print(f"[red]Error looking up system: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
 
 @app.command("test-api")
@@ -201,12 +189,18 @@ def test_api() -> None:
     console.print(f"[dim]API URL: {config.api.base_url}[/dim]")
 
     with APIClient(config) as client:
-        if client.test_connection():
-            console.print("[green]✅ API connection successful[/green]")
-        else:
-            console.print("[red]❌ API connection failed[/red]")
+        try:
+            response = client.get("teapot/api/test", endpoint_privacy=APIEndpointPrivacy.PUBLIC)
+            if response.get("success", False):
+                console.print("[green]✅ API connection successful[/green]")
+            else:
+                console.print("[red]❌ API connection failed[/red]")
+                console.print("[yellow]Check your API URL and network connection[/yellow]")
+                raise typer.Exit(1)
+        except APIError as e:
+            console.print(f"[red]❌ API connection failed: {e}[/red]")
             console.print("[yellow]Check your API URL and network connection[/yellow]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
 
 @app.command("system-info")
@@ -241,8 +235,12 @@ def show_system_info() -> None:
         console.print("  Preferred: Not set (using detected)")
 
     console.print("\n[dim]To set a preferred package manager:[/dim]")
-    console.print("[dim]  teapot config set system.preferred_package_manager <manager>[/dim]")
-    console.print("[dim]  Available: apt, yum, dnf, pacman, brew, zypper, apk, pkg, portage[/dim]")
+    console.print(
+        "[dim]  teapot config set system.preferred_package_manager <manager>[/dim]"
+    )
+    console.print(
+        "[dim]  Available: apt, yum, dnf, pacman, brew, zypper, apk, pkg, portage[/dim]"
+    )
 
 
 @app.command()

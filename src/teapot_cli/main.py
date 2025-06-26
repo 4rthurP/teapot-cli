@@ -30,7 +30,7 @@ def login() -> None:
 
     if config.auth.user_id and config.auth.session_token:
         console.print(
-            "[yellow]⚠️ You are already logged in. Use 'logout' to clear session.[/yellow]",  # noqa: E501
+            "[yellow]⚠️ You are already logged in. Use 'logout' to clear session.[/yellow]",
         )
         raise typer.Abort from None
 

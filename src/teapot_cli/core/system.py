@@ -8,10 +8,17 @@ from pathlib import Path
 from typing import Literal
 
 PackageManager = Literal[
-    "apt", "yum", "dnf", "pacman", "brew", "zypper", "apk", "pkg", "portage",
+    "apt",
+    "yum",
+    "dnf",
+    "pacman",
+    "brew",
+    "zypper",
+    "apk",
+    "pkg",
+    "portage",
 ]
 ShellType = Literal["bash", "zsh", "omz", "fish", "tcsh", "csh", "unknown"]
-
 
 
 class SystemInfo:
@@ -196,56 +203,6 @@ class SystemInfo:
 
         return config_files.get(shell_type)
 
-    def add_alias_to_shell(
-        self,
-        alias_name: str,
-        alias_command: str,
-    ) -> tuple[bool, str]:
-        """Add an alias to the shell configuration.
-
-        Args:
-            alias_name: Name of the alias
-            alias_command: Command the alias should run
-            shell: Shell type to add alias to (defaults to detected shell)
-            skip_restart: If True, skip terminal restart/reload
-
-        Returns:
-            bool: True if alias was added successfully
-
-        """
-        shell_type = self.shell
-        config_path = self.get_shell_config_path(shell_type)
-        if not config_path:
-            return False
-
-        # Ensure config directory exists for fish
-        if shell_type == "fish":
-            config_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Format alias command based on shell
-        if shell_type == "fish":
-            alias_line = f"alias {alias_name} '{alias_command}'"
-        else:
-            alias_line = f"alias {alias_name}='{alias_command}'"
-
-        try:
-            # Check if alias already exists
-            if config_path.exists():
-                with config_path.open() as f:
-                    content = f.read()
-                    if f"alias {alias_name}" in content:
-                        # Already exists
-                        return True, f"Alias {alias_name} already exists."
-
-            # Add alias to config file
-            with config_path.open("a") as f:
-                f.write(f"\n# Teapot CLI alias\n{alias_line}\n")
-
-        except (OSError, PermissionError):
-            return False, f"Failed to write alias '{alias_name}': Permission denied."
-        else:
-            return True, f"Successfully installed alias '{alias_name}' to {shell_type} config"  # noqa: E501
-
     def restart_terminal(self) -> bool:
         """Restart or reload terminal configuration.
 
@@ -294,7 +251,7 @@ class SystemInfo:
 
         """
         try:
-            result = subprocess.run(  # noqa: S603
+            result = subprocess.run(
                 command,
                 capture_output=True,
                 text=True,
@@ -305,6 +262,7 @@ class SystemInfo:
             return False, str(e)
         else:
             return result.returncode == 0, result.stdout + result.stderr
+
 
 def get_system_info() -> SystemInfo:
     """Get system information instance (backward compatibility).

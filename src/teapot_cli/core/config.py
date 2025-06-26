@@ -56,11 +56,10 @@ class TeapotConfig(BaseSettings):
     api: APIConfig = Field(default_factory=APIConfig)
     system: SystemConfig = Field(default_factory=SystemConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
-    cache_dir: Path | None = None
     verbosity: int = 0
     tz: None | ZoneInfo = None
-    packages: dict[str, dict] = Field(default_factory=dict)
-    aliases: dict[str, dict] = Field(default_factory=dict)
+    packages: dict[str, str] = Field(default_factory=dict)
+    aliases: dict[str, str] = Field(default_factory=dict)
     skip_install: bool = False
 
     # Private cached system info
@@ -69,10 +68,6 @@ class TeapotConfig(BaseSettings):
     def __init__(self, **kwargs) -> None:
         """Initialize TeapotConfig with default values."""
         super().__init__(**kwargs)
-
-        # Set default cache directory if not provided
-        if self.cache_dir is None:
-            self.cache_dir = Path(user_config_dir("teapot-cli")) / "cache"
 
         # Override verbosity from environment if set (from CLI)
         if "TEAPOT_VERBOSITY" in os.environ:
@@ -155,10 +150,8 @@ def save_config(config: TeapotConfig) -> None:
     """Save configuration to file."""
     config_path = get_config_path()
 
-    # Convert to dict and handle Path objects
+    # Convert to dict for serialization
     config_dict = config.model_dump(mode="json")
-    if config_dict.get("cache_dir"):
-        config_dict["cache_dir"] = str(config_dict["cache_dir"])
 
     with Path.open(config_path, "w") as f:
         yaml.dump(config_dict, f, default_flow_style=False)

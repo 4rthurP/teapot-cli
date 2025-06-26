@@ -68,11 +68,7 @@ class APIClient:
 
         """
         self.config = config
-        self.client = httpx.Client(
-            base_url=config.api.base_url,
-            timeout=config.api.timeout,
-            headers=self._get_headers(),
-        )
+        self.client = httpx.Client(timeout=config.api.timeout, headers=self._get_headers())
 
     def _get_headers(self) -> dict[str, str]:
         """Get HTTP headers for requests."""
@@ -101,7 +97,7 @@ class APIClient:
     def _truncate_response(self, data: dict | list, max_length: int = 500) -> str:
         """Truncate response data for logging."""
         data_str = (
-            json.dumps(data, indent=2) if isinstance(data, (dict, list)) else str(data)
+            json.dumps(data, indent=2) if isinstance(data, dict | list) else str(data)
         )
 
         if len(data_str) > max_length:
@@ -200,8 +196,7 @@ class APIClient:
             console.print(f"[{color}]{method}[/{color}] {action}")
 
         if self.config.is_verbose(VERBOSITY_DETAILED):
-            full_url = f"{self.config.api.base_url.rstrip('/')}/rest.php"
-            console.print(f"[dim]  → Full URL: {full_url}[/dim]")
+            console.print(f"[dim]  → Full URL: {self.endpoint}[/dim]")
             console.print(f"[dim]  → Action: {action}[/dim]")
 
             if kwargs.get("params"):
@@ -228,7 +223,7 @@ class APIClient:
                 "green" if response.status_code in SUCCESS_STATUS_CODE_RANGE else "red"
             )
             console.print(
-                f"[dim]  ← Status: [{status_color}]{response.status_code}[/{status_color}] ({elapsed:.2f}s)[/dim]",  # noqa: E501
+                f"[dim]  ← Status: [{status_color}]{response.status_code}[/{status_color}] ({elapsed:.2f}s)[/dim]",
             )
 
         if self.config.is_verbose(VERBOSITY_DEBUG):
@@ -286,7 +281,6 @@ class APIClient:
             self._ensure_valid_nonce()
 
         start_time = time.time()
-        self._log_request("GET", action, params=params)
 
         if params is None:
             params = {}
@@ -295,8 +289,14 @@ class APIClient:
         # Add auth data to params for GET requests
         if endpoint_privacy == APIEndpointPrivacy.LOGGED_IN:
             params = self._add_auth_data(params)
-
-        response = self.client.get(self.endpoint, params=params)
+        
+        self._log_request("GET", action, params=params)
+        
+        # Run the request
+        try:
+            response = self.client.get(self.endpoint, params=params)
+        except httpx.RequestError as e:
+            raise APIError(f"Request failed: {e}") from e
 
         self._log_response(response, start_time)
         response_data = self._handle_response(response)
@@ -336,9 +336,13 @@ class APIClient:
 
         # Log request details
         self._log_request("POST", action, data=data)
-        # Run the request - send as form data instead of JSON
-        response = self.client.post(self.endpoint, data=data)
 
+        # Run the request - send as form data instead of JSON
+        try:
+            response = self.client.post(self.endpoint, data=data)
+        except httpx.RequestError as e:
+            raise APIError(f"Request failed: {e}") from e
+        
         # Log response details
         self._log_response(response, start_time)
         # Handle response
@@ -369,7 +373,6 @@ class APIClient:
             self._ensure_valid_nonce()
 
         start_time = time.time()
-        self._log_request("PUT", action, data=data)
 
         if data is None:
             data = {}
@@ -379,8 +382,14 @@ class APIClient:
         if endpoint_privacy == APIEndpointPrivacy.LOGGED_IN:
             data = self._add_auth_data(data)
 
-        response = self.client.put(self.endpoint, data=data)
+        self._log_request("PUT", action, data=data)
 
+        # Run the request
+        try:
+            response = self.client.put(self.endpoint, data=data)
+        except httpx.RequestError as e:
+            raise APIError(f"Request failed: {e}") from e
+        
         self._log_response(response, start_time)
         response_data = self._handle_response(response)
 
@@ -407,7 +416,6 @@ class APIClient:
             self._ensure_valid_nonce()
 
         start_time = time.time()
-        self._log_request("DELETE", action)
 
         # For DELETE requests, add auth data as query parameters
         auth_params = {}
@@ -419,7 +427,13 @@ class APIClient:
         param_str = "&".join([f"{k}={v}" for k, v in params.items()])
         endpoint = f"{self.endpoint}?{param_str}"
 
-        response = self.client.delete(endpoint)
+        self._log_request("DELETE", action)
+
+        # Run the request
+        try:
+            response = self.client.delete(endpoint)
+        except httpx.RequestError as e:
+            raise APIError(f"Request failed: {e}") from e
 
         self._log_response(response, start_time)
         response_data = self._handle_response(response)
@@ -430,30 +444,6 @@ class APIClient:
 
         return response_data
 
-    def test_connection(self) -> bool:
-        """Test API connection by calling the test endpoint.
-
-        Returns:
-            bool: True if connection successful and response has success=True
-
-        """
-        if self.config.is_verbose(VERBOSITY_DETAILED):
-            console.print("[dim]🔍 Testing API connection...[/dim]")
-
-        try:
-            response = self.get("/teapot/api/test")
-            success = response.get("success", False) is True
-
-            if self.config.is_verbose(VERBOSITY_DEBUG):
-                console.print(f"[dim]  Test response: {response}[/dim]")
-                console.print(f"[dim]  Success: {success}[/dim]")
-
-        except APIError as e:
-            if self.config.is_verbose(VERBOSITY_DETAILED):
-                console.print(f"[dim]  API test failed: {e}[/dim]")
-            return False
-        else:
-            return response
 
     def close(self) -> None:
         """Close the HTTP client."""

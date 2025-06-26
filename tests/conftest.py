@@ -27,8 +27,7 @@ def mock_config(temp_dir):
 
     config = TeapotConfig(
         api=api_config,
-        cache_dir=temp_dir / "cache",
-        verbose=True,
+        verbosity=1,
     )
 
     return config

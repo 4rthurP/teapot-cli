@@ -1,0 +1,2 @@
+- Get the correct endpoint in uninstall
+- Make sure we have a remove and uninstall command
