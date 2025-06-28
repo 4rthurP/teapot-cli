@@ -79,10 +79,11 @@ class ElementManager:
                     f"/teapot/{self.element_type}/get_by_name",
                     params={"name": element_name},
                 )
-                if "element" in response:
+                data = response.get("data", None)
+                if data is not None:
                     return self.element_class.from_dict(
                         self.config,
-                        response["element"],
+                        data,
                     )
             except APIError as e:
                 console.print(f"[red]Error loading element {element_name}:[/red] {e}")
@@ -139,8 +140,7 @@ class ElementManager:
 
                 # Extract element names from response
                 response_data = response.get("data", {})
-                elements_data = response_data.get("elements", [])
-                return [elements_data[elem].get("name") for elem in elements_data], response_data.get("dependencies", [])
+                return response_data.get("elements", []), response_data.get("dependencies", [])
 
             except APIError as e:
                 console.print(
@@ -227,7 +227,7 @@ class ElementManager:
 
         return success_count == len(element_names)
 
-    def install(self, element_names: list[str]) -> bool:
+    def install(self, element_names: list[str], elements_data: dict | None = None) -> bool:
         """Install elements using simplified workflow.
 
         Args:
@@ -246,11 +246,18 @@ class ElementManager:
         is_batch = len(element_names) > 1
 
         for element_name in element_names:
-            # Load element with complete API data
-            element = self._load_element(element_name)
-            if not element:
-                console.print(f"[red]Could not load element '{element_name}'[/red]")
-                continue
+            if element_name in elements_data:
+                # Use provided data if available
+                element = elements_data[element_name]
+            else:
+                # Load element data from API
+                element = self._load_element(element_name)
+                if not element:
+                    # Try installing with the default package manager
+                    element = self.element_class(
+                        config=self.config,
+                        name=element_name,
+                    )
 
             # Install the element
             if element.install(skip_restart=is_batch):
@@ -286,7 +293,7 @@ class ElementManager:
             )
 
         # Get all available elements from API
-        available_elements = self.list_all_available()
+        available_elements, dependencies = self.list_system_assigned()
         if not available_elements:
             console.print(
                 f"[yellow]No {self.element_type_plural} available for installation.[/yellow]"
@@ -299,8 +306,13 @@ class ElementManager:
 
         # Filter out already installed elements
         elements_to_install = [
-            name for name in available_elements if name not in installed_names
+            available_elements[elem]["name"] for elem in available_elements if available_elements[elem]["name"] not in installed_names
         ]
+        dependencies_to_install = [
+            dep for dep in dependencies if dep not in installed_names and dep not in elements_to_install
+        ]
+
+        elements_to_install.extend(dependencies_to_install)
 
         if not elements_to_install:
             console.print(
@@ -315,7 +327,7 @@ class ElementManager:
             console.print(f"  • {element_name}")
 
         # Install the elements
-        return self.install(elements_to_install)
+        return self.install(elements_to_install, available_elements)
 
     def display_info_table(
         self,
@@ -338,7 +350,6 @@ class ElementManager:
 
         table = Table(title=title)
         table.add_column("Name")
-        table.add_column("Version")
         table.add_column("Description")
         if show_dependencies:
             table.add_column("Dependencies")
@@ -346,7 +357,6 @@ class ElementManager:
         for element in elements:
             row_data = [
                 element.name,
-                getattr(element, "version", "unknown") or "unknown",
                 element.description or "No description available",
             ]
             if show_dependencies:
@@ -369,8 +379,8 @@ class ElementManager:
         installed_names = set(installed_elements.values())
 
         # Categorize elements
-        installed = [name for name in system_elements if name in installed_names]
-        pending = [name for name in system_elements if name not in installed_names]
+        installed = [system_elements[elem]["name"] for elem in system_elements if system_elements[elem]["name"] in installed_names]
+        pending = [system_elements[elem]["name"] for elem in system_elements if system_elements[elem]["name"] not in installed_names]
 
         console.print(f"System {self.element_type_plural} ({len(system_elements)} total):")
         

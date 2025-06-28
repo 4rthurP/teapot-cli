@@ -66,10 +66,8 @@ class TeapotElement(ABC):
 
     @classmethod
     def from_dict(cls, config: TeapotConfig, data: dict) -> "TeapotElement":
-        """Create element from dictionary."""
-        # This is an abstract method that concrete classes should override
-        exception_msg = "Subclasses must implement from_dict"
-        raise NotImplementedError(exception_msg)
+        """Create TeapotElement from dictionary."""
+        return cls(config=config, **data)
 
     @property
     @abstractmethod

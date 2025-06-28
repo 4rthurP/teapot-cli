@@ -2,7 +2,6 @@
 
 from rich.console import Console
 
-from teapot_cli.core.config import TeapotConfig
 from teapot_cli.core.element import TeapotElement
 
 console = Console()
@@ -53,16 +52,11 @@ class TeapotPackage(TeapotElement):
                 return False, f"Unsupported package manager: {package_manager}"
 
         outputs = []
-        for command in commands:
-            if not self.config.skip_install:
-                success, output = system_info.run_command(command, capture_output=True)
-            outputs.append(output)
-            if not success:
-                return False, f"Failed to run command '{command}': {output}"
+        if not self.config.skip_install:
+            for command in commands:
+                success, output = system_info.run_command(command)
+                outputs.append(output)
+                if not success:
+                    return False, f"Failed to run command '{command}': {output}"
 
         return True, f"Successfully installed package {self.name}."
-
-    @classmethod
-    def from_dict(cls, config: TeapotConfig, data: dict) -> "TeapotPackage":
-        """Create TeapotPackage from dictionary."""
-        return cls(config=config, **data)

@@ -2,7 +2,6 @@
 
 from rich.console import Console
 
-from teapot_cli.core.config import TeapotConfig
 from teapot_cli.core.element import TeapotElement
 
 console = Console()
@@ -19,7 +18,7 @@ class TeapotAlias(TeapotElement):
     @property
     def element_type_plural(self) -> str:
         """Return the plural form of the element type."""
-        return "aliases"
+        return "alias"
 
     @property
     def element_class(self) -> str:
@@ -77,8 +76,3 @@ class TeapotAlias(TeapotElement):
             True,
             f"Successfully installed alias '{self.name}' to {shell_type} config",
         )
-
-    @classmethod
-    def from_dict(cls, config: TeapotConfig, data: dict) -> "TeapotAlias":
-        """Create TeapotAlias from dictionary."""
-        return cls(config=config, **data)
