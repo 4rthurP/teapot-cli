@@ -1,9 +1,9 @@
 """API client for teapot-cli."""
 
-import json
 import time
 from datetime import datetime
 from enum import Enum
+from json import JSONDecodeError, dumps
 from typing import Any
 
 import httpx
@@ -68,7 +68,9 @@ class APIClient:
 
         """
         self.config = config
-        self.client = httpx.Client(timeout=config.api.timeout, headers=self._get_headers())
+        self.client = httpx.Client(
+            timeout=config.api.timeout, headers=self._get_headers()
+        )
 
     def _get_headers(self) -> dict[str, str]:
         """Get HTTP headers for requests."""
@@ -96,9 +98,7 @@ class APIClient:
 
     def _truncate_response(self, data: dict | list, max_length: int = 500) -> str:
         """Truncate response data for logging."""
-        data_str = (
-            json.dumps(data, indent=2) if isinstance(data, dict | list) else str(data)
-        )
+        data_str = dumps(data, indent=2) if isinstance(data, dict | list) else str(data)
 
         if len(data_str) > max_length:
             return data_str[:max_length] + "... [TRUNCATED]"
@@ -232,14 +232,38 @@ class APIClient:
                 if self.config.is_verbose(VERBOSITY_DEBUG):
                     # Full response in debug mode
                     console.print(
-                        f"[dim]  ← Response: {json.dumps(response_data, indent=2)}[/dim]",
+                        f"[dim]  ← Response: {dumps(response_data, indent=2)}[/dim]",
                     )
                 else:
                     # Truncated response in detailed mode
                     truncated = self._truncate_response(response_data)
                     console.print(f"[dim]  ← Response: {truncated}[/dim]")
-            except KeyError:
-                console.print(f"[dim]  ← Response (raw): {response.text[:200]}[/dim]")
+            except JSONDecodeError:
+                if self.config.is_verbose(VERBOSITY_DEBUG):
+                    console.print(
+                        f"[dim]  ← Response (non-JSON): {response.text}[/dim]"
+                    )
+                else:
+                    console.print(
+                        f"[dim]  ← Response (raw): {response.text[:200]}[/dim]"
+                    )
+
+    def _detect_backend_error(self, text: str) -> bool:
+        """Detect if response text indicates a backend error."""
+        error_indicators = [
+            "<html",
+            "<!DOCTYPE",
+            "Fatal error:",
+            "Parse error:",
+            "Warning:",
+            "Notice:",
+            "Traceback",
+            "Exception",
+            "Error 500",
+            "Internal Server Error",
+        ]
+        text_lower = text.lower()
+        return any(indicator.lower() in text_lower for indicator in error_indicators)
 
     def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
         """Handle HTTP response and raise errors if needed."""
@@ -247,14 +271,26 @@ class APIClient:
             try:
                 error_data = response.json()
                 message = error_data.get("message", f"HTTP {response.status_code}")
-            except KeyError:
+            except JSONDecodeError:
                 message = f"HTTP {response.status_code}: {response.text}"
 
             raise APIError(message, response.status_code)
 
         try:
             return response.json()
-        except ValueError:
+        except JSONDecodeError:
+            # Handle non-JSON responses based on verbosity
+            if self._detect_backend_error(response.text):
+                if self.config.is_verbose(VERBOSITY_DEBUG):
+                    console.print(
+                        f"[red]Backend returned non-JSON response:[/red]\n{response.text}"
+                    )
+                    raise APIError(f"Backend error: {response.text}") from None
+
+                console.print("[red]Backend returned an invalid response[/red]")
+                raise APIError("Backend returned an invalid response") from None
+
+            # Non-error non-JSON response, return as text data
             return {"data": response.text}
 
     @property
@@ -289,9 +325,9 @@ class APIClient:
         # Add auth data to params for GET requests
         if endpoint_privacy == APIEndpointPrivacy.LOGGED_IN:
             params = self._add_auth_data(params)
-        
+
         self._log_request("GET", action, params=params)
-        
+
         # Run the request
         try:
             response = self.client.get(self.endpoint, params=params)
@@ -342,7 +378,7 @@ class APIClient:
             response = self.client.post(self.endpoint, data=data)
         except httpx.RequestError as e:
             raise APIError(f"Request failed: {e}") from e
-        
+
         # Log response details
         self._log_response(response, start_time)
         # Handle response
@@ -389,7 +425,7 @@ class APIClient:
             response = self.client.put(self.endpoint, data=data)
         except httpx.RequestError as e:
             raise APIError(f"Request failed: {e}") from e
-        
+
         self._log_response(response, start_time)
         response_data = self._handle_response(response)
 
@@ -443,7 +479,6 @@ class APIClient:
             self._handle_auth_response(response_data)
 
         return response_data
-
 
     def close(self) -> None:
         """Close the HTTP client."""

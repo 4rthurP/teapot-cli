@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="robots" content="noindex">
+<title>Exporter: Arpege - db - Adminer</title>
+<link rel="stylesheet" type="text/css" href="?file=default.css&amp;version=4.8.1">
+<script src='?file=functions.js&amp;version=4.8.1' nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ="></script>
+<link rel="shortcut icon" type="image/x-icon" href="?file=favicon.ico&amp;version=4.8.1">
+<link rel="apple-touch-icon" href="?file=favicon.ico&amp;version=4.8.1">
+<link rel="stylesheet" type="text/css" href="adminer.css?v=2586695466">
+
+<body class="ltr nojs">
+<script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">
+mixin(document.body, {onkeydown: bodyKeydown, onclick: bodyClick});
+document.body.className = document.body.className.replace(/ nojs/, ' js');
+var offlineMessage = 'Vous êtes hors ligne.';
+var thousandsSeparator = ',';
+</script>
+
+<div id="help" class="jush-sql jsonly hidden"></div>
+<script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">mixin(qs('#help'), {onmouseover: function () { helpOpen = 1; }, onmouseout: helpMouseout});</script>
+
+<div id="content">
+<p id="breadcrumb"><a href="?server=db">MySQL</a> &raquo; <a href='?server=db&amp;username=root' accesskey='1' title='Alt+Shift+1'>db</a> &raquo; <a href="?server=db&amp;username=root&amp;db=Arpege">Arpege</a> &raquo; Exporter
+<h2>Exporter: Arpege</h2>
+<div id='ajaxstatus' class='jsonly hidden'></div>
+<div class='error'>Données POST trop grandes. Réduisez la taille des données ou augmentez la valeur de 'post_max_size' dans la configuration de PHP.</div>
+
+<form action="" method="post">
+<table cellspacing="0" class="layout">
+<tr><th>Sortie<td><label><input type='radio' name='output' value='text' checked>ouvrir</label><label><input type='radio' name='output' value='file'>enregistrer</label><label><input type='radio' name='output' value='gz'>gzip</label>
+<tr><th>Format<td><label><input type='radio' name='format' value='sql' checked>SQL</label><label><input type='radio' name='format' value='csv'>CSV,</label><label><input type='radio' name='format' value='csv;'>CSV;</label><label><input type='radio' name='format' value='tsv'>TSV</label>
+<tr><th>Base de données<td><select name='db_style'><option selected><option>USE<option>DROP+CREATE<option>CREATE</select><label><input type='checkbox' name='routines' value='1' checked>Routines</label><label><input type='checkbox' name='events' value='1' checked>Évènements</label><tr><th>Tables<td><select name='table_style'><option><option selected>DROP+CREATE<option>CREATE</select><label><input type='checkbox' name='auto_increment' value='1'>Incrément automatique</label><label><input type='checkbox' name='triggers' value='1' checked>Déclencheurs</label><tr><th>Données<td><select name='data_style'><option><option>TRUNCATE+INSERT<option selected>INSERT<option>INSERT+UPDATE</select></table>
+<p><input type="submit" value="Exporter">
+<input type="hidden" name="token" value="482507:982194">
+
+<table cellspacing="0">
+<script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">qsl('table').onclick = dumpClick;</script>
+<thead><tr><th style='text-align: left;'><label class='block'><input type='checkbox' id='check-tables' checked>Tables</label><script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">qs('#check-tables').onclick = partial(formCheck, /^tables\[/);</script><th style='text-align: right;'><label class='block'>Données<input type='checkbox' id='check-data' checked></label><script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">qs('#check-data').onclick = partial(formCheck, /^data\[/);</script></thead>
+<tr><td><label class='block'><input type='checkbox' name='tables[]' value='cellr_wines' checked>cellr_wines</label><td align='right'><label class='block'><span id='Rows-cellr_wines'></span><input type='checkbox' name='data[]' value='cellr_wines' checked></label>
+<script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">ajaxSetHtml('?server=db&username=root&db=Arpege&script=db');</script>
+</table>
+</form>
+</div>
+
+<form action='' method='post'>
+<div id='lang'>Langue: <select name='lang'><option value="en">English<option value="ar">العربية<option value="bg">Български<option value="bn">বাংলা<option value="bs">Bosanski<option value="ca">Català<option value="cs">Čeština<option value="da">Dansk<option value="de">Deutsch<option value="el">Ελληνικά<option value="es">Español<option value="et">Eesti<option value="fa">فارسی<option value="fi">Suomi<option value="fr" selected>Français<option value="gl">Galego<option value="he">עברית<option value="hu">Magyar<option value="id">Bahasa Indonesia<option value="it">Italiano<option value="ja">日本語<option value="ka">ქართული<option value="ko">한국어<option value="lt">Lietuvių<option value="ms">Bahasa Melayu<option value="nl">Nederlands<option value="no">Norsk<option value="pl">Polski<option value="pt">Português<option value="pt-br">Português (Brazil)<option value="ro">Limba Română<option value="ru">Русский<option value="sk">Slovenčina<option value="sl">Slovenski<option value="sr">Српски<option value="sv">Svenska<option value="ta">த‌மிழ்<option value="th">ภาษาไทย<option value="tr">Türkçe<option value="uk">Українська<option value="vi">Tiếng Việt<option value="zh">简体中文<option value="zh-tw">繁體中文</select><script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">qsl('select').onchange = function () { this.form.submit(); };</script> <input type='submit' value='Utiliser' class='hidden'>
+<input type='hidden' name='token' value='104570:538627'>
+</div>
+</form>
+<form action="" method="post">
+<p class="logout">
+<input type="submit" name="logout" value="Déconnexion" id="logout">
+<input type="hidden" name="token" value="482507:982194">
+</p>
+</form>
+<div id="menu">
+<h1>
+<a href='https://www.adminer.org/' target="_blank" rel="noreferrer noopener" id='h1'>Adminer</a> <span class="version">4.8.1</span>
+<a href="https://www.adminer.org/#download" target="_blank" rel="noreferrer noopener" id="version"></a>
+</h1>
+<script src='?file=jush.js&amp;version=4.8.1' nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ="></script>
+<script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">
+var jushLinks = { sql: [ '?server=db&username=root&db=Arpege&table=$&', /\b(cellr_wines)\b/g ] };
+jushLinks.bac = jushLinks.sql;
+jushLinks.bra = jushLinks.sql;
+jushLinks.sqlite_quo = jushLinks.sql;
+jushLinks.mssql_bra = jushLinks.sql;
+bodyLoad('8.3');
+</script>
+<form action="">
+<p id="dbs">
+<input type="hidden" name="server" value="db"><input type="hidden" name="username" value="root"><span title='base de données'>DB</span>: <select name='db'><option value=""><option selected>Arpege<option>information_schema<option>mysql<option>performance_schema<option>sys</select><script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">mixin(qsl('select'), {onmousedown: dbMouseDown, onchange: dbChange});</script>
+<input type='submit' value='Utiliser' class='hidden'>
+<input type='hidden' name='dump' value=''></p></form>
+<p class='links'><a href='?server=db&amp;username=root&amp;db=Arpege&amp;sql='>Requête SQL</a>
+<a href='?server=db&amp;username=root&amp;db=Arpege&amp;import='>Importer</a>
+<a href='?server=db&amp;username=root&amp;db=Arpege&amp;dump=' id='dump' class='active '>Exporter</a>
+<a href="?server=db&amp;username=root&amp;db=Arpege&amp;create=">Créer une table</a>
+<ul id='tables'><script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">mixin(qs('#tables'), {onmouseover: menuOver, onmouseout: menuOut});</script>
+<li><a href="?server=db&amp;username=root&amp;db=Arpege&amp;select=cellr_wines" class='select' title='Afficher les données'>select</a> <a href="?server=db&amp;username=root&amp;db=Arpege&amp;table=cellr_wines" class='structure' title='Afficher la structure'>cellr_wines</a>
+</ul>
+</div>
+<script nonce="N2ZhOWFlMjI5YTEzMzAzNTc4OGU5Y2M2NTE4ZjE2MDQ=">setupSubmitHighlight(document);</script>

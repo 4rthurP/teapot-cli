@@ -140,7 +140,9 @@ class ElementManager:
 
                 # Extract element names from response
                 response_data = response.get("data", {})
-                return response_data.get("elements", []), response_data.get("dependencies", [])
+                return response_data.get("elements", []), response_data.get(
+                    "dependencies", []
+                )
 
             except APIError as e:
                 console.print(
@@ -227,7 +229,9 @@ class ElementManager:
 
         return success_count == len(element_names)
 
-    def install(self, element_names: list[str], elements_data: dict | None = None) -> bool:
+    def install(
+        self, element_names: list[str], elements_data: dict | None = None
+    ) -> bool:
         """Install elements using simplified workflow.
 
         Args:
@@ -306,10 +310,14 @@ class ElementManager:
 
         # Filter out already installed elements
         elements_to_install = [
-            available_elements[elem]["name"] for elem in available_elements if available_elements[elem]["name"] not in installed_names
+            available_elements[elem]["name"]
+            for elem in available_elements
+            if available_elements[elem]["name"] not in installed_names
         ]
         dependencies_to_install = [
-            dep for dep in dependencies if dep not in installed_names and dep not in elements_to_install
+            dep
+            for dep in dependencies
+            if dep not in installed_names and dep not in elements_to_install
         ]
 
         elements_to_install.extend(dependencies_to_install)
@@ -372,27 +380,41 @@ class ElementManager:
         """Display system-assigned elements with installation status."""
         system_elements, dependencies = self.list_system_assigned()
         if not system_elements:
-            console.print(f"[yellow]No {self.element_type_plural} assigned to this system.[/yellow]")
+            console.print(
+                f"[yellow]No {self.element_type_plural} assigned to this system.[/yellow]"
+            )
             return
 
         installed_elements = self.list_installed()
         installed_names = set(installed_elements.values())
 
         # Categorize elements
-        installed = [system_elements[elem]["name"] for elem in system_elements if system_elements[elem]["name"] in installed_names]
-        pending = [system_elements[elem]["name"] for elem in system_elements if system_elements[elem]["name"] not in installed_names]
+        installed = [
+            system_elements[elem]["name"]
+            for elem in system_elements
+            if system_elements[elem]["name"] in installed_names
+        ]
+        pending = [
+            system_elements[elem]["name"]
+            for elem in system_elements
+            if system_elements[elem]["name"] not in installed_names
+        ]
 
-        console.print(f"System {self.element_type_plural} ({len(system_elements)} total):")
-        
+        console.print(
+            f"System {self.element_type_plural} ({len(system_elements)} total):"
+        )
+
         # Show installed first
         for name in installed:
             console.print(f"  [green]✅ {name}[/green] (installed)")
-        
+
         # Show pending installation
         for name in pending:
             console.print(f"  [yellow]⏳ {name}[/yellow] (pending installation)")
 
         console.print(f"{len(dependencies)} dependencies associated")
-        
+
         if pending:
-            console.print(f"\n[dim]Run 'teapot {self.element_type} install --all' to install pending {self.element_type_plural}[/dim]")
+            console.print(
+                f"\n[dim]Run 'teapot {self.element_type} install --all' to install pending {self.element_type_plural}[/dim]"
+            )

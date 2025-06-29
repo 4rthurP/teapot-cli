@@ -190,12 +190,16 @@ def test_api() -> None:
 
     with APIClient(config) as client:
         try:
-            response = client.get("teapot/api/test", endpoint_privacy=APIEndpointPrivacy.PUBLIC)
+            response = client.get(
+                "teapot/api/test", endpoint_privacy=APIEndpointPrivacy.PUBLIC
+            )
             if response.get("success", False):
                 console.print("[green]✅ API connection successful[/green]")
             else:
                 console.print("[red]❌ API connection failed[/red]")
-                console.print("[yellow]Check your API URL and network connection[/yellow]")
+                console.print(
+                    "[yellow]Check your API URL and network connection[/yellow]"
+                )
                 raise typer.Exit(1)
         except APIError as e:
             console.print(f"[red]❌ API connection failed: {e}[/red]")

@@ -6,7 +6,7 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from teapot_cli.commands import alias, config, package
+from teapot_cli.commands import alias, config, file, package
 from teapot_cli.core.api import APIClient, APIEndpointPrivacy, APIError
 from teapot_cli.core.config import AuthConfig, load_config, save_config
 
@@ -21,6 +21,7 @@ app = typer.Typer(
 app.add_typer(package.app, name="package", help="Package management commands")
 app.add_typer(alias.app, name="alias", help="Alias management commands")
 app.add_typer(config.app, name="config", help="Configuration management commands")
+app.add_typer(file.app, name="file", help="File management commands")
 
 
 @app.command("login")

@@ -1,6 +1,5 @@
 """Tests for configuration management."""
 
-
 from teapot_cli.core.config import APIConfig, TeapotConfig, load_config, save_config
 
 
