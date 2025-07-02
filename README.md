@@ -13,7 +13,18 @@ Teapot CLI provides a clean interface for managing packages and configurations w
 - 🔧 **Type-Safe** - Built with Pydantic for robust data validation
 
 ## 🚀 Installation
+**Install pip and python 3.13.5**
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.13
+```
 
+**Clone the repository and inside run pip in python3.13**
+```bash
+python3.13 -m pip install .
+``` 
+## 🔳 Development setup
 **Development setup with uv:**
 ```bash
 git clone <your-repo>

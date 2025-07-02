@@ -1,2 +1,4 @@
+- Fix API not returning user_id and token on login
+- Catch the exception when the response data does not contain the expected keys
 - Get the correct endpoint in uninstall
 - Make sure we have a remove and uninstall command
