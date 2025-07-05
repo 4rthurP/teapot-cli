@@ -60,10 +60,13 @@ def login() -> None:
 
         except APIError as e:
             console.print(f"[red]❌ Login failed: {e}[/red]")
-            raise typer.Exit(1) from None
+            raise typer.Exit(1) from e
         except KeyError as e:
             console.print(f"[red]❌ Invalid response from server: {e}[/red]")
-            raise typer.Exit(1) from None
+            raise typer.Exit(1) from e
+        except TypeError as e:
+            console.print("[red]❌ Unexpected response format[/red]")
+            raise typer.Exit(1) from e
 
 
 @app.command("logout")
