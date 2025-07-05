@@ -53,7 +53,7 @@ def login() -> None:
 
             # Store auth data
             config.auth.user_id = response["data"]["user_id"]
-            config.auth.session_token = response["data"]["session_token"]
+            config.auth.session_token = f"{config.auth.user_id}::{response["data"]["session_token"]}"
 
             save_config(config)
             console.print("[green]✅ Login successful[/green]")
