@@ -150,7 +150,7 @@ class SystemInfo:
 
         return None
 
-    def get_package_install_command(self, package_name: str) -> list[str]:
+    def get_package_install_command(self, package_name: str) -> str:
         """Get the command to install a package.
 
         Args:
@@ -158,26 +158,26 @@ class SystemInfo:
             package_manager: Package manager to use (defaults to detected one)
 
         Returns:
-            list[str]: Command and arguments to install the package
+            str: Command to install the package
 
         """
         pm = self.package_manager
         if not pm:
-            return []
+            return ""
 
         commands = {
-            "apt": ["sudo", "apt", "install", "-y", package_name],
-            "yum": ["sudo", "yum", "install", "-y", package_name],
-            "dnf": ["sudo", "dnf", "install", "-y", package_name],
-            "pacman": ["sudo", "pacman", "-S", "--noconfirm", package_name],
-            "brew": ["brew", "install", package_name],
-            "zypper": ["sudo", "zypper", "install", "-y", package_name],
-            "apk": ["sudo", "apk", "add", package_name],
-            "pkg": ["sudo", "pkg", "install", "-y", package_name],
-            "portage": ["sudo", "emerge", package_name],
+            "apt": f"sudo apt install -y {package_name}",
+            "yum": f"sudo yum install -y {package_name}",
+            "dnf": f"sudo dnf install -y {package_name}",
+            "pacman": f"sudo pacman -S --noconfirm {package_name}",
+            "brew": f"brew install {package_name}",
+            "zypper": f"sudo zypper install -y {package_name}",
+            "apk": f"sudo apk add {package_name}",
+            "pkg": f"sudo pkg install -y {package_name}",
+            "portage": f"sudo emerge {package_name}",
         }
 
-        return commands.get(pm, [])
+        return commands.get(pm, "")
 
     def get_shell_config_path(self, shell: ShellType | None = None) -> Path | None:
         """Get the path to the shell configuration file.
@@ -239,7 +239,7 @@ class SystemInfo:
 
         return False
 
-    def run_command(self, command: list) -> tuple[bool, str]:
+    def run_command(self, command: str) -> tuple[bool, str]:
         """Run a system command.
 
         Args:
@@ -256,6 +256,7 @@ class SystemInfo:
                 capture_output=True,
                 text=True,
                 check=False,
+                shell=True,
             )
 
         except (subprocess.SubprocessError, FileNotFoundError) as e:

@@ -62,34 +62,6 @@ class ElementManager:
         element_storage[str(element_id)] = element_name
         save_config(self.config)
 
-    def _load_element(self, element_name: str) -> TeapotElement | None:
-        """Load a specific element by name using add_or_create API.
-
-        Args:
-            element_name: Name of the element to load
-
-        Returns:
-            TeapotElement | None: Loaded element or None if not found
-
-        """
-        # Always fetch from API using add_or_create endpoint
-        with APIClient(self.config) as client:
-            try:
-                response = client.get(
-                    f"/teapot/{self.element_type}/get_by_name",
-                    params={"name": element_name},
-                )
-                data = response.get("data", None)
-                if data is not None:
-                    return self.element_class.from_dict(
-                        self.config,
-                        data,
-                    )
-            except APIError as e:
-                console.print(f"[red]Error loading element {element_name}:[/red] {e}")
-
-        return None
-
     def list_installed(self) -> dict[str, str]:
         """List installed elements from local storage.
 
@@ -151,7 +123,7 @@ class ElementManager:
                 return []
 
     def get_info(self, element_name: str) -> TeapotElement | None:
-        """Get information about a specific element using add_or_create API.
+        """Get information about a specific element using get_by_name API.
 
         Args:
             element_name: Name of the element to query
@@ -160,7 +132,12 @@ class ElementManager:
             Element | None: Element information or None if not found
 
         """
-        return self._load_element(element_name)
+        element = self.element_class(
+            config=self.config,
+            name=element_name,
+        )
+        element.load_element_data()
+        return element if element.id else None
 
     def uninstall(self, element_names: list[str], *, confirm: bool = True) -> bool:
         """Uninstall elements from the system.
@@ -229,9 +206,7 @@ class ElementManager:
 
         return success_count == len(element_names)
 
-    def install(
-        self, element_names: list[str], elements_data: dict | None = None
-    ) -> bool:
+    def install(self, element_names: list[str]) -> bool:
         """Install elements using simplified workflow.
 
         Args:
@@ -250,18 +225,10 @@ class ElementManager:
         is_batch = len(element_names) > 1
 
         for element_name in element_names:
-            if element_name in elements_data:
-                # Use provided data if available
-                element = elements_data[element_name]
-            else:
-                # Load element data from API
-                element = self._load_element(element_name)
-                if not element:
-                    # Try installing with the default package manager
-                    element = self.element_class(
-                        config=self.config,
-                        name=element_name,
-                    )
+            element = self.element_class(
+                config=self.config,
+                name=element_name,
+            )
 
             # Install the element
             if element.install(skip_restart=is_batch):
@@ -335,7 +302,7 @@ class ElementManager:
             console.print(f"  • {element_name}")
 
         # Install the elements
-        return self.install(elements_to_install, available_elements)
+        return self.install(elements_to_install)
 
     def display_info_table(
         self,

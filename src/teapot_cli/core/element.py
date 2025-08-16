@@ -103,7 +103,7 @@ class TeapotElement(ABC):
 
         """
         # Load element data if not already loaded
-        if not self._load_element_data():
+        if not self.load_element_data():
             console.print(f"[red]Could not find element '{self.name}'[/red]")
             return False
 
@@ -150,7 +150,7 @@ class TeapotElement(ABC):
 
         return False
 
-    def _load_element_data(self) -> bool:
+    def load_element_data(self) -> bool:
         """Load element data from API using add_or_create endpoint.
 
         Returns:
@@ -184,14 +184,16 @@ class TeapotElement(ABC):
         with APIClient(self.config) as client:
             try:
                 response = client.get(
-                    f"/teapot/{self.element_type}/add_or_create",
+                    f"/teapot/{self.element_type}/get_by_name",
                     params={"name": self.name},
-                )
+                )  
 
-                if "element" in response:
-                    element_data = response["element"]
-                    self._update_from_dict(element_data)
-                    return True
+                data = response.get("data", None)
+                if not data or data == []:
+                    return False
+                    
+                self._update_from_dict(data)
+                return True
 
             except APIError as e:
                 if self.config.is_verbose():

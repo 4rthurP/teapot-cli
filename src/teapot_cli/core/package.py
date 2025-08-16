@@ -36,7 +36,7 @@ class TeapotPackage(TeapotElement):
 
         # Check if element has custom install commands
         commands = getattr(self, "commands", None)
-        if not commands:
+        if not commands or commands == []:
             # Use default package manager installation
             package_manager = self.config.get_effective_package_manager()
 
@@ -47,16 +47,38 @@ class TeapotPackage(TeapotElement):
                 )
 
             # Build package name with version if specified
-            commands = system_info.get_package_install_command(self.name)
-            if not commands:
+            command = system_info.get_package_install_command(self.name)
+            if not command:
                 return False, f"Unsupported package manager: {package_manager}"
+            commands = [
+                {
+                    "content": command,
+                    "phase": "install",
+                    "position": 1,
+                }
+            ]
+
+        commands = self._order_commands(commands)
 
         outputs = []
         if not self.config.skip_install:
             for command in commands:
-                success, output = system_info.run_command(command)
+                success, output = system_info.run_command(command["content"])
                 outputs.append(output)
                 if not success:
-                    return False, f"Failed to run command '{command}': {output}"
+                    return False, f"Failed to run command '{command["content"]}': {output}"
 
         return True, f"Successfully installed package {self.name}."
+
+
+    def _order_commands(self, commands: list[dict]) -> list[dict]:
+        """Order commands by their position.
+
+        Args:
+            commands: List of command dictionaries with 'position' key
+
+        Returns:
+            list[dict]: Ordered list of commands
+
+        """
+        return sorted(commands, key=lambda x: x.get("position", 0))
