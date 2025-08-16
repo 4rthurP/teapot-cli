@@ -61,6 +61,7 @@ class TeapotConfig(BaseSettings):
     packages: dict[str, str] = Field(default_factory=dict)
     alias: dict[str, str] = Field(default_factory=dict)
     skip_install: bool = False
+    teapot_config_file: str = Field(default="config.yaml", env="TEAPOT_CONFIG_FILE")
 
     # Private cached system info
     _system_info: "SystemInfo | None" = None
@@ -131,7 +132,7 @@ def get_config_path() -> Path:
     config_dir = Path(user_config_dir("teapot-cli"))
     config_dir.mkdir(parents=True, exist_ok=True)
 
-    filename = os.environ.get("TEAPOT_CONFIG_FILE", "config.yaml")
+    filename = TeapotConfig().teapot_config_file
     return config_dir / filename
 
 

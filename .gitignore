@@ -10,4 +10,5 @@ __pycache__/
 CLAUDE.md
 
 # Config files
+.env
 *.local.yaml

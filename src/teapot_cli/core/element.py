@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from teapot_cli.core.api import APIClient, APIError
 from teapot_cli.core.config import (
@@ -113,40 +112,26 @@ class TeapotElement(ABC):
             console.print(f"[yellow]{self.name} already installed[/yellow]")
             return True
 
-        # Install if needed
-        success: bool = True
-        output: str = ""
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console,
-        ) as progress:
-            task = progress.add_task(
-                f"Installing {self}",
-                total=None,
-            )
+        # Install if needed - show live output without progress spinner
+        console.print(f"[dim]Installing {self}...[/dim]")
+        
+        success, error_msg = self._perform_install()
 
-            success, output = self._perform_install()
+        if success:
+            console.print(f"[green]✅ Successfully installed {self}[/green]")
 
-            if success:
-                progress.update(task, description=f"✅ Installed {self}")
-                if output.strip():
-                    console.print(f"[green]{output.strip()}[/green]")
-                else:
-                    console.print(f"[green]Successfully installed {self}[/green]")
+            # Handle terminal restart for aliases
+            if self.element_type == "alias" and not skip_restart:
+                self.config.system_info.restart_terminal()
+                console.print("[dim]Terminal configuration reloaded[/dim]")
 
-                # Handle terminal restart for aliases
-                if self.element_type == "alias" and not skip_restart:
-                    self.config.system_info.restart_terminal()
-                    console.print("[dim]Terminal configuration reloaded[/dim]")
+            self._mark_as_installed()
+            return True
 
-                self._mark_as_installed()
-                return True
-
-            if output.strip():
-                console.print(f"[red]Error: {output.strip()}[/red]")
-            else:
-                console.print(f"[red]Failed to install {self}[/red]")
+        if error_msg.strip():
+            console.print(f"[red]❌ {error_msg.strip()}[/red]")
+        else:
+            console.print(f"[red]❌ Failed to install {self}[/red]")
 
         return False
 

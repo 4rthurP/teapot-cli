@@ -60,13 +60,11 @@ class TeapotPackage(TeapotElement):
 
         commands = self._order_commands(commands)
 
-        outputs = []
         if not self.config.skip_install:
             for command in commands:
-                success, output = system_info.run_command(command["content"])
-                outputs.append(output)
+                success, _ = system_info.run_command(command["content"])
                 if not success:
-                    return False, f"Failed to run command '{command["content"]}': {output}"
+                    return False, f"Failed to run command '{command["content"]}'"
 
         return True, f"Successfully installed package {self.name}."
 

@@ -240,29 +240,34 @@ class SystemInfo:
         return False
 
     def run_command(self, command: str) -> tuple[bool, str]:
-        """Run a system command.
+        """Run a system command with real-time output display and user interaction.
 
         Args:
             command: Command and arguments to run
-            capture_output: Whether to capture and return output
 
         Returns:
-            tuple[bool, str]: (success, output/error message)
+            tuple[bool, str]: (success, empty string since output shown live)
 
         """
         try:
-            result = subprocess.run(
+            # Use Popen to allow real-time interaction with the terminal
+            # stdout=None, stderr=None, stdin=None means inherit parent's file descriptors
+            process = subprocess.Popen(
                 command,
-                capture_output=True,
-                text=True,
-                check=False,
                 shell=True,
+                stdout=None,  # Inherit parent stdout for live display
+                stderr=None,  # Inherit parent stderr for live display  
+                stdin=None,   # Inherit parent stdin for user interaction
+                text=True,
             )
+            
+            # Wait for the process to complete
+            returncode = process.wait()
+            
+            return returncode == 0, ""
 
         except (subprocess.SubprocessError, FileNotFoundError) as e:
             return False, str(e)
-        else:
-            return result.returncode == 0, result.stdout + result.stderr
 
 
 def get_system_info() -> SystemInfo:
