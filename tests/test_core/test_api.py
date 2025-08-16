@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from teapot_cli.core.api import APIClient, APIError
+from teapot_cli import __version__ as teapot_version
 
 
 def test_api_client_initialization(mock_config):
@@ -16,7 +17,7 @@ def test_api_client_initialization(mock_config):
             base_url="https://api.test.com",
             timeout=10,
             headers={
-                "User-Agent": "teapot-cli/0.1.0",
+                "User-Agent": "teapot-cli/" + teapot_version,
                 "Accept": "application/json",
                 "Content-Type": "application/json",
                 "Authorization": "Bearer test-key",

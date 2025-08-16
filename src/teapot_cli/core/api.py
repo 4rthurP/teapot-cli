@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 from rich.console import Console
 
+from teapot_cli import __version__ as teapot_version
 from teapot_cli.core.config import (
     VERBOSITY_BASIC,
     VERBOSITY_DEBUG,
@@ -75,7 +76,7 @@ class APIClient:
     def _get_headers(self) -> dict[str, str]:
         """Get HTTP headers for requests."""
         headers = {
-            "User-Agent": "teapot-cli/0.1.0",
+            "User-Agent": "teapot-cli/" + teapot_version,
             "Accept": "application/json",
         }
 

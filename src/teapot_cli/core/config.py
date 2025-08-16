@@ -130,7 +130,9 @@ def get_config_path() -> Path:
     """Get the path to the configuration file."""
     config_dir = Path(user_config_dir("teapot-cli"))
     config_dir.mkdir(parents=True, exist_ok=True)
-    return config_dir / "config.yaml"
+
+    filename = os.environ.get("TEAPOT_CONFIG_FILE", "config.yaml")
+    return config_dir / filename
 
 
 def load_config() -> TeapotConfig:
